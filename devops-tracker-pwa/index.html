@@ -518,11 +518,11 @@ function render(){
       row.innerHTML =
         '<span class="box">' + (isDone ? "[x]" : "[ ]") + '</span>' +
         '<span class="item-text">' + text.replace(/^Apply: /,"") + applyTag + '</span>';
-      row.onclick = async () => {
+      row.onclick = () => {
         state[key] = !state[key];
         render();
         try{
-          await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }catch(e){ console.error("save failed", e); }
       };
       itemsEl.appendChild(row);
@@ -539,9 +539,9 @@ function render(){
 
 async function init(){
   try{
-    const result = await window.storage.get(STORAGE_KEY);
-    if(result && result.value){
-      state = JSON.parse(result.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      state = JSON.parse(raw);
     }
   }catch(e){
     state = {};
@@ -549,11 +549,11 @@ async function init(){
   render();
 }
 
-document.getElementById("resetBtn").onclick = async () => {
+document.getElementById("resetBtn").onclick = () => {
   state = {};
   render();
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }catch(e){ console.error("reset save failed", e); }
 };
 
