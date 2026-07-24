@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DevOps in 3 Months — Progress Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e0f;
+    --surface:#12181a;
+    --surface-2:#161d1f;
+    --border:#22302f;
+    --border-soft:#1a2426;
+    --text:#dbe4e1;
+    --text-dim:#7c8f8a;
+    --text-faint:#4d5c58;
+    --green:#3ddc84;
+    --green-dim:#1e5e3f;
+    --amber:#ffb84d;
+    --amber-dim:#6b4d1a;
+    --coral:#f0997b;
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+    font-family:var(--mono);
+  }
+  .top h1{
+    font-size:15px;
+    font-weight:500;
+    margin:0;
+    color:var(--text);
+    letter-spacing:0.02em;
+  }
+  .top .pct{
+    font-size:15px;
+    color:var(--green);
+    font-weight:700;
+  }
+  .sub{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+    margin-bottom:20px;
+  }
+  .pipeline{
+    display:flex;
+    align-items:center;
+    margin:24px 0 28px;
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+  .node{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    flex-shrink:0;
+    width:78px;
+  }
+  .dot{
+    width:15px;height:15px;border-radius:50%;
+    background:var(--surface-2);
+    border:2px solid var(--border);
+    transition:all .15s ease;
+  }
+  .dot.amber{background:var(--amber-dim);border-color:var(--amber);}
+  .dot.green{background:var(--green);border-color:var(--green);}
+  .node-label{
+    font-family:var(--mono);
+    font-size:9.5px;
+    color:var(--text-faint);
+    text-align:center;
+    line-height:1.3;
+  }
+  .node:hover .node-label{color:var(--text-dim);}
+  .line{
+    height:2px;
+    background:var(--border);
+    flex:1;
+    min-width:14px;
+    margin-top:-19px;
+  }
+  .line.done{background:var(--green-dim);}
+  .barwrap{
+    height:6px;
+    background:var(--surface-2);
+    border:1px solid var(--border-soft);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:32px;
+  }
+  .barfill{
+    height:100%;
+    background:var(--green);
+    width:0%;
+    transition:width .3s ease;
+  }
+  .stage{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    margin-bottom:16px;
+    overflow:hidden;
+    scroll-margin-top:20px;
+  }
+  .stage-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 14px;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--border-soft);
+    cursor:pointer;
+  }
+  .stage-dots{display:flex;gap:5px;}
+  .stage-dots span{width:8px;height:8px;border-radius:50%;background:var(--border);}
+  .stage-title{
+    font-family:var(--mono);
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--text);
+    flex:1;
+  }
+  .stage-count{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-faint);
+  }
+  .chev{
+    color:var(--text-faint);
+    font-size:11px;
+    transition:transform .15s ease;
+  }
+  .stage.collapsed .chev{transform:rotate(-90deg);}
+  .items{padding:6px 8px;}
+  .stage.collapsed .items{display:none;}
+  .item{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:8px 10px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .item:hover{background:var(--surface-2);}
+  .box{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text-faint);
+    line-height:1.5;
+    flex-shrink:0;
+    width:16px;
+  }
+  .item.done .box{color:var(--green);}
+  .item-text{
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--text);
+  }
+  .item.done .item-text{color:var(--text-faint);text-decoration:line-through;}
+  .tag{
+    font-family:var(--mono);
+    font-size:9px;
+    color:var(--coral);
+    border:1px solid #4a3226;
+    background:#1c1310;
+    padding:1px 5px;
+    border-radius:3px;
+    margin-left:8px;
+    vertical-align:1px;
+  }
+  .footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:24px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    color:var(--text-faint);
+  }
+  .reset{
+    background:none;
+    border:1px solid var(--border);
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:10.5px;
+    padding:5px 10px;
+    border-radius:5px;
+    cursor:pointer;
+  }
+  .reset:hover{color:var(--coral);border-color:#4a3226;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>~/devops-in-3-months</h1>
+    <span class="pct" id="pctLabel">0%</span>
+  </div>
+  <div class="sub">course progress tracker · runs locally in this artifact</div>
+
+  <div class="pipeline" id="pipeline"></div>
+  <div class="barwrap"><div class="barfill" id="barfill"></div></div>
+
+  <div id="stages"></div>
+
+  <div class="footer">
+    <span id="statusLine">loading…</span>
+    <button class="reset" id="resetBtn">reset all</button>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {
+    id: "core",
+    label: "core",
+    title: "01 · core DevOps course (Day 1–43)",
+    core: true,
+    items: [
+      "Day-1 Fundamentals of DevOps",
+      "Day-2 Improve SDLC",
+      "Absolute Prerequisite for Learning DevOps",
+      "Day-3 Virtual Machines Part-1",
+      "Day-4 AWS & Azure — How to Create VMs",
+      "How to Connect to EC2 Instance from Windows (MobaXterm)",
+      "Day-5 AWS CLI Full Guide",
+      "Day-6 Linux & Shell Scripting",
+      "Shell Scripting for DevOps — Zero to Hero Part-1",
+      "Shell Scripting for DevOps — Zero to Hero Part-2",
+      "Day-7 Live AWS Project using Shell Scripting",
+      "Day-9 Git and GitHub",
+      "Day-10 Git Branching Strategy",
+      "Day-11 Git Interview Q&A and Commands",
+      "Day-12 Deploy and Expose Your First App to AWS",
+      "Day-13 Top 15 AWS Services Every DevOps Engineer Should Learn",
+      "Day-14 Configuration Management with Ansible",
+      "Day-15 Ansible Zero to Hero",
+      "Day-16 Infrastructure as Code (Terraform)",
+      "Day-17 Everything About Terraform",
+      "Day-18 What is CI/CD?",
+      "Day-19 Jenkins Zero to Hero",
+      "Day-20 GitHub Actions in 20 Mins",
+      "Day-21 CI/CD Interview Questions",
+      "Day-22 Project Management Tools for DevOps",
+      "Day-23 Introduction to Containers",
+      "Day-24 Docker Zero to Hero Part-1",
+      "Day-25 Docker Containerization for Django",
+      "Day-26 Multi Stage Docker Builds",
+      "Day-27 Docker Volumes and Bind Mounts",
+      "Day-28 Docker Networking — Bridge vs Host vs Overlay",
+      "Day-29 Docker Interview Questions",
+      "Day-30 Kubernetes is Easy — Introduction",
+      "Day-31 Kubernetes Architecture",
+      "Day-32 How to Manage Hundreds of K8s Clusters (KOPS)",
+      "Day-33 Kubernetes Pods — Deploy Your First App",
+      "Day-34 Kubernetes Deployment & ReplicaSets",
+      "Day-35 Everything About Kubernetes Services",
+      "Day-36 Kubernetes Interview Questions Part-1",
+      "Day-37 Kubernetes Services Deep Dive",
+      "Day-38 Kubernetes Ingress",
+      "Day-39 Introduction to K8s RBAC",
+      "Day-40 Kubernetes Custom Resources",
+      "Day-41 Kubernetes Live Project — ConfigMaps & Secrets",
+      "Day-42 Kubernetes Monitoring using Prometheus & Grafana",
+      "Day-43 AWS Live Project — Deploy App using HTTPD"
+    ]
+  },
+  {
+    id: "linux",
+    label: "linux",
+    title: "02 · Linux Zero to Hero",
+    core: true,
+    items: [
+      "Day-1 Fundamentals of Linux (Run Linux using Docker)",
+      "Day-2 Linux Folder Structure Explained",
+      "Day-3 User Management | File Management | Vi Editor",
+      "Day-4 Linux File Permissions Management",
+      "Day-5 Process Management, Monitoring, Networking, Disk Management",
+      "Networking Concepts are Easy",
+      "OSI Model Simplified"
+    ]
+  },
+  {
+    id: "aws",
+    label: "aws",
+    title: "03 · AWS Zero to Hero",
+    core: true,
+    items: [
+      "Day-0 Course Details",
+      "Day-1 Introduction to AWS",
+      "Day-2 AWS IAM Deep Dive",
+      "Day-3 EC2 Deep Dive — Deploy Jenkins on AWS",
+      "Day-4 VPC Explained",
+      "Day-5 Security Groups and NACL",
+      "Day-6 Route53 Explained",
+      "Day-7 AWS VPC Project",
+      "Day-8 AWS Scenario Based Interview Questions",
+      "Day-9 AWS S3 Buckets Deep Dive",
+      "Day-10 AWS CLI Deep Dive",
+      "Day-11 IaC with AWS CFT",
+      "Day-12 AWS CI/CD — CodeCommit",
+      "Day-13 AWS CodePipeline vs Jenkins",
+      "Day-14 AWS End to End CI Project",
+      "Day-15 AWS Ultimate CI/CD Pipeline",
+      "Day-16 AWS CloudWatch Deep Dive",
+      "Day-17 AWS Lambda Introduction",
+      "Day-18 AWS Cost Optimization",
+      "Day-19 AWS CloudFront",
+      "Day-20 AWS ECR — ECR vs DockerHub",
+      "Day-21 AWS ECS — ECS vs EKS vs Kubernetes",
+      "Day-23 Secrets Management on AWS",
+      "Day-24 Terraform with AWS Project",
+      "Day-25 AWS Config — Compliant Resources",
+      "Day-26 AWS Load Balancers — ALB vs NLB vs GWLB",
+      "Day-28 Migrating Applications to AWS Cloud",
+      "Day-30 Three Tier Architecture Implementation on AWS"
+    ]
+  },
+  {
+    id: "azure",
+    label: "azure",
+    title: "04 · Azure Zero to Hero",
+    core: false,
+    items: [
+      "Day-0 Course Syllabus",
+      "Day-1 Basics of Cloud Computing",
+      "Day-2 Getting Started with Azure",
+      "Day-3 Resource, Resource Groups, Azure Resource Manager",
+      "Day-4 Deploy Jenkins on Azure VM",
+      "Day-5 Azure Virtual Network (VNet) Explained",
+      "Day-6 Azure Networking Basic to Advanced",
+      "Day-7 Azure Networking Demo",
+      "Day-8 Azure Networking Interview Questions",
+      "Day-9 Azure Storage Services and Usecases",
+      "Day-10 Automate Azure Resources using CLI",
+      "Day-11 Azure Resource Manager Templates",
+      "Day-12 Azure IAM from Basics",
+      "Day-13 Azure DevOps in 20 Minutes",
+      "Day-14 DevOps Project from Absolute Zero",
+      "Day-15 Ultimate Azure CI/CD Pipeline (Argo CD)",
+      "Day-16 AKS vs Self Managed Kubernetes Clusters",
+      "Day-17 Deploy an E-Commerce Project on AKS",
+      "Day-18 Azure DevOps Scenario Based Interview Questions",
+      "Day-19 Creating Effective Monitoring System on Azure",
+      "Day-20 Azure Key Vault Integration with AKS",
+      "Day-21 Introduction to Serverless using Azure Functions",
+      "Day-22 Event Driven Serverless Implementation",
+      "Day-23 Getting Started with Terraform for Azure",
+      "Day-24 DevOps Resume with Projects",
+      "Day-25 CI/CD in 5 Minutes for Any Language",
+      "Day-26 Scale Kubernetes Cluster in a Cost Optimized Way",
+      "Day-27 Make Your Windows Laptop 10X Productive (WSL2)"
+    ]
+  },
+  {
+    id: "terraform",
+    label: "terraform",
+    title: "05 · Terraform Zero to Hero",
+    core: true,
+    items: [
+      "Day-0 Course Syllabus",
+      "Day-1 Getting Started with Terraform",
+      "Day-2 Providers, Multi Region, Multi Cloud",
+      "Day-3 Terraform Modules — Write Your First Module",
+      "Day-4 Terraform State Deep Dive — Remote Backend",
+      "Day-5 Most Common Terraform Tasks Used in Real-Time",
+      "Day-6 Terraform Workspaces Demo (Dev/QA/Stage)",
+      "Day-7 Terraform Vault Integration — Secrets Management",
+      "Day-8 Most Asked Interview Scenarios"
+    ]
+  },
+  {
+    id: "python",
+    label: "python",
+    title: "06 · Python for DevOps",
+    core: false,
+    items: [
+      "Day-0 Course Syllabus",
+      "Day-1 Introduction to Python — Shell vs Python",
+      "Day-2 Data Types, Strings, String Handling Functions",
+      "Day-3 Keywords, Variables & Best Practices",
+      "Day-4 Functions, Modules and Packages",
+      "Day-5 Command Line Args & Env Vars",
+      "Day-6 Operators",
+      "Day-7 Conditional Handling — If, Else, Else If",
+      "Day-8 Lists and Tuples",
+      "Day-9 Loops in Python — For & While",
+      "Day-10 Real Time UseCase with Lists & Exception Handling",
+      "Day-11 Real Time UseCase with Dictionaries",
+      "Day-12 Python File Operations",
+      "Day-13 Boto3 Beginner to Advanced with Projects",
+      "Day-14 Automate JIRA Creation on a GitHub Event",
+      "Day-15 GitHub-Jira Integration using Flask Part-2",
+      "Day-16 Python Interview Q&A for DevOps"
+    ]
+  },
+  {
+    id: "ai",
+    label: "AI ops",
+    title: "07 · AI-Assisted DevOps",
+    core: false,
+    items: [
+      "Day-0 Course Syllabus",
+      "Day-1 Fundamentals of AI Assisted DevOps",
+      "Day-2 Prompt Engineering Explained",
+      "Day-3 Gen-AI Project for DevOps Engineers",
+      "Run DeepSeek AI on Your Machine",
+      "Day-4 AI Assisted Shell Scripting",
+      "Day-5 AIOps Explained with Free Playgrounds",
+      "Day-6 AIOps for Log Analysis — First AIOps Project",
+      "Day-7 Create Your First AI Agent (Zero Code)",
+      "Docker Model Runner Explained",
+      "Day-8 AI Agent for Your Internal Documentation",
+      "Build Enterprise AI Agent for Internal Docs (Retool)",
+      "Can AI Deploy My App to VM + Container + K8s + Serverless?"
+    ]
+  },
+  {
+    id: "observability",
+    label: "observ.",
+    title: "08 · Observability Zero to Hero",
+    core: true,
+    items: [
+      "Day-1 Fundamentals of Observability",
+      "Day-2 Metrics, Monitoring and Prometheus Basics",
+      "Day-3 Best Prometheus Explanation — Hands On",
+      "Day-4 Custom Metrics Instrumentation and Alerts",
+      "Day-5 Logging with EFK Stack",
+      "Day-6 Distributed Tracing with Jaeger",
+      "End to End Observability Project",
+      "OpenSearch Stack in 30 Minutes",
+      "PagerDuty Explained in 20 Minutes",
+      "Multi Cloud Infrastructure Monitoring"
+    ]
+  }
+];
+
+const STORAGE_KEY = "devops-3mo-tracker-state";
+let state = {};
+
+function itemKey(sIdx, iIdx){ return sIdx + "-" + iIdx; }
+
+function render(){
+  const pipeline = document.getElementById("pipeline");
+  const stagesEl = document.getElementById("stages");
+  pipeline.innerHTML = "";
+  stagesEl.innerHTML = "";
+
+  let totalItems = 0, totalDone = 0;
+
+  DATA.forEach((stage, sIdx) => {
+    const total = stage.items.length;
+    let done = 0;
+    stage.items.forEach((_, iIdx) => { if(state[itemKey(sIdx,iIdx)]) done++; });
+    totalItems += total; totalDone += done;
+
+    const node = document.createElement("div");
+    node.className = "node";
+    const dotClass = done === 0 ? "" : (done === total ? "green" : "amber");
+    node.innerHTML = '<div class="dot ' + dotClass + '"></div><div class="node-label">' + stage.label + '</div>';
+    node.onclick = () => {
+      document.getElementById("stage-" + stage.id).scrollIntoView({behavior:"smooth", block:"start"});
+    };
+    pipeline.appendChild(node);
+    if(sIdx < DATA.length - 1){
+      const line = document.createElement("div");
+      line.className = "line" + (done === total ? " done" : "");
+      pipeline.appendChild(line);
+    }
+
+    const stageEl = document.createElement("div");
+    stageEl.className = "stage";
+    stageEl.id = "stage-" + stage.id;
+
+    const head = document.createElement("div");
+    head.className = "stage-head";
+    const optBadge = stage.core ? "" : '<span class="tag">optional</span>';
+    head.innerHTML =
+      '<div class="stage-dots"><span></span><span></span><span></span></div>' +
+      '<div class="stage-title">' + stage.title + optBadge + '</div>' +
+      '<div class="stage-count">' + done + '/' + total + '</div>' +
+      '<div class="chev">▾</div>';
+    head.onclick = () => { stageEl.classList.toggle("collapsed"); };
+    stageEl.appendChild(head);
+
+    const itemsEl = document.createElement("div");
+    itemsEl.className = "items";
+    stage.items.forEach((text, iIdx) => {
+      const key = itemKey(sIdx, iIdx);
+      const isDone = !!state[key];
+      const row = document.createElement("div");
+      row.className = "item" + (isDone ? " done" : "");
+      const applyTag = text.startsWith("Apply:") ? '<span class="tag">apply</span>' : "";
+      row.innerHTML =
+        '<span class="box">' + (isDone ? "[x]" : "[ ]") + '</span>' +
+        '<span class="item-text">' + text.replace(/^Apply: /,"") + applyTag + '</span>';
+      row.onclick = async () => {
+        state[key] = !state[key];
+        render();
+        try{
+          await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+        }catch(e){ console.error("save failed", e); }
+      };
+      itemsEl.appendChild(row);
+    });
+    stageEl.appendChild(itemsEl);
+    stagesEl.appendChild(stageEl);
+  });
+
+  const pct = totalItems ? Math.round((totalDone / totalItems) * 100) : 0;
+  document.getElementById("pctLabel").textContent = pct + "%";
+  document.getElementById("barfill").style.width = pct + "%";
+  document.getElementById("statusLine").textContent = totalDone + " / " + totalItems + " tasks complete";
+}
+
+async function init(){
+  try{
+    const result = await window.storage.get(STORAGE_KEY);
+    if(result && result.value){
+      state = JSON.parse(result.value);
+    }
+  }catch(e){
+    state = {};
+  }
+  render();
+}
+
+document.getElementById("resetBtn").onclick = async () => {
+  state = {};
+  render();
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){ console.error("reset save failed", e); }
+};
+
+init();
+</script>
+</body>
+</html>
