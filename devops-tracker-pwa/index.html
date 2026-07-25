@@ -181,6 +181,14 @@
     color:var(--text);
   }
   .item.done .item-text{color:var(--text-faint);text-decoration:line-through;}
+  .item-ts{
+    display:block;
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--green);
+    margin-top:2px;
+    text-decoration:none;
+  }
   .tag{
     font-family:var(--mono);
     font-size:9px;
@@ -461,23 +469,18 @@ const DATA = [
 
 const STORAGE_KEY = "devops-3mo-tracker-state";
 let state = {};
-
 function itemKey(sIdx, iIdx){ return sIdx + "-" + iIdx; }
-
 function render(){
   const pipeline = document.getElementById("pipeline");
   const stagesEl = document.getElementById("stages");
   pipeline.innerHTML = "";
   stagesEl.innerHTML = "";
-
   let totalItems = 0, totalDone = 0;
-
   DATA.forEach((stage, sIdx) => {
     const total = stage.items.length;
     let done = 0;
     stage.items.forEach((_, iIdx) => { if(state[itemKey(sIdx,iIdx)]) done++; });
     totalItems += total; totalDone += done;
-
     const node = document.createElement("div");
     node.className = "node";
     const dotClass = done === 0 ? "" : (done === total ? "green" : "amber");
@@ -491,11 +494,9 @@ function render(){
       line.className = "line" + (done === total ? " done" : "");
       pipeline.appendChild(line);
     }
-
     const stageEl = document.createElement("div");
     stageEl.className = "stage";
     stageEl.id = "stage-" + stage.id;
-
     const head = document.createElement("div");
     head.className = "stage-head";
     const optBadge = stage.core ? "" : '<span class="tag">optional</span>';
@@ -506,20 +507,27 @@ function render(){
       '<div class="chev">▾</div>';
     head.onclick = () => { stageEl.classList.toggle("collapsed"); };
     stageEl.appendChild(head);
-
     const itemsEl = document.createElement("div");
     itemsEl.className = "items";
     stage.items.forEach((text, iIdx) => {
       const key = itemKey(sIdx, iIdx);
-      const isDone = !!state[key];
+      const entry = state[key];
+      const isDone = !!(entry && entry.done);
+      const tsText = isDone && entry.ts ? new Date(entry.ts).toLocaleString(undefined, {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"}) : "";
       const row = document.createElement("div");
       row.className = "item" + (isDone ? " done" : "");
       const applyTag = text.startsWith("Apply:") ? '<span class="tag">apply</span>' : "";
       row.innerHTML =
         '<span class="box">' + (isDone ? "[x]" : "[ ]") + '</span>' +
-        '<span class="item-text">' + text.replace(/^Apply: /,"") + applyTag + '</span>';
+        '<span class="item-text">' + text.replace(/^Apply: /,"") + applyTag +
+        (tsText ? '<span class="item-ts">✓ completed ' + tsText + '</span>' : '') +
+        '</span>';
       row.onclick = () => {
-        state[key] = !state[key];
+        if(state[key] && state[key].done){
+          delete state[key];
+        } else {
+          state[key] = { done: true, ts: new Date().toISOString() };
+        }
         render();
         try{
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -530,13 +538,11 @@ function render(){
     stageEl.appendChild(itemsEl);
     stagesEl.appendChild(stageEl);
   });
-
   const pct = totalItems ? Math.round((totalDone / totalItems) * 100) : 0;
   document.getElementById("pctLabel").textContent = pct + "%";
   document.getElementById("barfill").style.width = pct + "%";
   document.getElementById("statusLine").textContent = totalDone + " / " + totalItems + " tasks complete";
 }
-
 async function init(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -548,7 +554,6 @@ async function init(){
   }
   render();
 }
-
 document.getElementById("resetBtn").onclick = () => {
   state = {};
   render();
@@ -556,9 +561,7 @@ document.getElementById("resetBtn").onclick = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }catch(e){ console.error("reset save failed", e); }
 };
-
 init();
-
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").catch((e) => console.error("SW registration failed", e));
